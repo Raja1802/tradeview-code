@@ -12,16 +12,14 @@ collection = db['trades']
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    content_type = request.headers.get('Content-Type')
 
-    if content_type == 'text/plain':
-        data = request.data.decode('utf-8')
+    data = request.data.decode('utf-8')
 
-        if data:
-            # Save entire payload to MongoDB
-            collection.insert_one({'data': data})
+    if data:
+        # Save entire payload to MongoDB
+        collection.insert_one({'data': data})
 
-            return jsonify({'message': 'Trade data saved successfully'})
+        return jsonify({'message': 'Trade data saved successfully'})
     return jsonify({'message': 'Invalid or unsupported payload'}), 400
 
 if __name__ == '__main__':
