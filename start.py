@@ -14,20 +14,22 @@ raw_collection = db['raw_trades']
 processed_collection = db['processed_trades']
 
 def parse_strategy_text(strategy_text):
-    # Check if "0\n\n\nStrategy" is present in the input string
-    match = re.search(r'0\s*\n\s*\n\s*\n\s*Strategy', strategy_text)
+    print(strategy_text)   
+    # Check if "Strategy" is present in the input string
+    match = re.search(r'Strategy', strategy_text)
     if not match:
         # Handle the case where the pattern is not found
-        raise ValueError("Invalid input format. Unable to find '0\\n\\n\\nStrategy'.")
+        raise ValueError("Invalid input format. Unable to find 'Strategy'.")
     
     # Get the index where the pattern was found
-    index = match.end()
+    index = match.start()
     
     # Extract the remaining text
-    remaining_text = strategy_text[index:]
+    first_part = strategy_text[:index]
+    second_part = strategy_text[index:]
     
     # Split the remaining text by '\n'
-    lines = remaining_text.split('\n')
+    lines = second_part.split('\n')
     
     # Create a dictionary from the key-value pairs
     strategy_dict = {}
@@ -48,7 +50,7 @@ def parse_strategy_text(strategy_text):
             
             strategy_dict[key] = value
     
-    return strategy_dict
+    return first_part, strategy_dict
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -60,8 +62,8 @@ def webhook():
             raw_collection.insert_one({'raw_data': data})
 
             # Parse and save processed data to MongoDB
-            processed_data = parse_strategy_text(data)
-            processed_collection.insert_one({'processed_data': processed_data})
+            first_part, processed_data = parse_strategy_text(data)
+            processed_collection.insert_one({'first_part': first_part, 'processed_data': processed_data})
 
             return jsonify({'message': 'Trade data saved successfully'})
         except ValueError as e:
