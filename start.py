@@ -48,6 +48,9 @@ def parse_strategy_text(strategy_text):
                     # Handle the case where the string is not a valid ISO format
                     pass
             
+            # Remove {{ }} brackets from values
+            value = value.replace('{{', '').replace('}}', '').strip()
+            
             strategy_dict[key] = value
     
     return first_part, strategy_dict
@@ -64,10 +67,7 @@ def webhook():
             # Parse and save processed data to MongoDB
             first_part, processed_data = parse_strategy_text(data)
             
-            # Convert processed_data to a JSON string
-            processed_data_json = json.dumps(processed_data)
-
-            processed_collection.insert_one({'first_part': first_part, 'processed_data': processed_data_json})
+            processed_collection.insert_one({'first_part': first_part, 'processed_data': dict(processed_data)})
 
             return jsonify({'message': 'Trade data saved successfully'})
         except ValueError as e:
