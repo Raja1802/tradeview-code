@@ -57,7 +57,7 @@ def webhook():
             raw_collection.insert_one({'raw_data': data})
 
             # Parse and save processed data to MongoDB
-            processed_data = parse_strategy_text(data)
+            processed_data = parse_strategy_text(str(data))
             processed_collection.insert_one({'processed_data': processed_data})
 
             return jsonify({'message': 'Trade data saved successfully'})
