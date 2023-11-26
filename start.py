@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import re
 from datetime import datetime
-import json
 
 app = Flask(__name__)
 
@@ -28,9 +27,9 @@ def parse_strategy_text(strategy_text):
     first_part = strategy_text[:index]
     second_part = strategy_text[index:]
     
-    # Split the remaining text by '\n'
+    # Split the remaining text by '\\n'
     lines = second_part.split('\\n')
-    
+    print(lines)
     # Create a dictionary from the key-value pairs
     strategy_dict = {}
     for line in lines:
@@ -51,10 +50,16 @@ def parse_strategy_text(strategy_text):
             # Remove {{ }} brackets from values
             value = value.replace('{{', '').replace('}}', '').strip()
             
-            # Insert each key-value pair into the strategy_dict
+            # Insert each key-value pair as a separate field in processed_collection
             strategy_dict[key] = value
-    
-    return first_part, strategy_dict
+
+    # Save raw data and first_part in raw_collection
+    raw_collection.insert_one({'raw_data': strategy_text, 'first_part': first_part})
+
+    # Insert the processed data into processed_collection
+    processed_collection.insert_one(strategy_dict)
+
+    return jsonify({'message': 'Trade data saved successfully'})
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -62,15 +67,8 @@ def webhook():
 
     if data:
         try:
-            # Save raw data to MongoDB
-            raw_collection.insert_one({'raw_data': data})
-
             # Parse and save processed data to MongoDB
-            first_part, strategy_dict = parse_strategy_text(data)
-            
-            # Insert each key-value pair as a separate field
-            processed_collection.insert_one({'first_part': first_part, **strategy_dict})
-
+            parse_strategy_text(data)
             return jsonify({'message': 'Trade data saved successfully'})
         except ValueError as e:
             return jsonify({'message': str(e)}), 400
