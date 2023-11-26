@@ -29,7 +29,7 @@ def parse_strategy_text(strategy_text):
     
     # Split the remaining text by '\n'
     lines = second_part.split('\n')
-    
+    print(lines)
     # Create a dictionary from the key-value pairs
     strategy_dict = {}
     for line in lines:
