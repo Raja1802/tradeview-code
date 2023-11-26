@@ -15,13 +15,13 @@ processed_collection = db['processed_trades']
 
 def parse_strategy_text(strategy_text):
     print(strategy_text)
-    # Check if "0\n" is present in the input string
-    if "0\n" not in strategy_text:
-        # Handle the case where "0\n" is not found
+    # Check if "0" followed by any number of whitespaces and newline is present in the input string
+    if not re.search(r'0\s*\n', strategy_text):
+        # Handle the case where the pattern is not found
         raise ValueError("Invalid input format. Unable to find '0\\n'.")
 
     # Split the remaining text by '\n'
-    _, remaining_text = strategy_text.split("0\n", 1)
+    _, remaining_text = re.split(r'0\s*\n', strategy_text, 1)
     
     # Split the remaining text by '\n'
     lines = remaining_text.split('\n')
