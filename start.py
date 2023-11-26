@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import re
 from datetime import datetime
-import json
 
 app = Flask(__name__)
 
@@ -67,6 +66,7 @@ def webhook():
 
             # Parse and save processed data to MongoDB
             parse_strategy_text(data)
+            return jsonify({'message': 'Trade data saved successfully'})
         except ValueError as e:
             return jsonify({'message': str(e)}), 400
     
