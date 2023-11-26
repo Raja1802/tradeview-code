@@ -14,7 +14,6 @@ raw_collection = db['raw_trades']
 processed_collection = db['processed_trades']
 
 def parse_strategy_text(strategy_text):
-    print(strategy_text)   
     # Check if "Strategy" is present in the input string
     match = re.search(r'Strategy', strategy_text)
     if not match:
