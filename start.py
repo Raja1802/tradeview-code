@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
+import re
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -8,18 +10,51 @@ mongo_uri = "mongodb://ajar:Raja1802@ac-ujpend1-shard-00-00.gcd17y2.mongodb.net:
 
 client = MongoClient(mongo_uri)
 db = client['trade_data']
-collection = db['trades']
+raw_collection = db['raw_trades']
+processed_collection = db['processed_trades']
+
+def parse_strategy_text(strategy_text):
+    # Ignore text up to "0\n"
+    _, remaining_text = strategy_text.split("0\n", 1)
+    
+    # Split the remaining text by '\n'
+    lines = remaining_text.split('\n')
+    
+    # Create a dictionary from the key-value pairs
+    strategy_dict = {}
+    for line in lines:
+        if '=' in line:
+            key, value = map(str.strip, line.split('=', 1))
+            
+            # Remove ending comma if present
+            value = value.rstrip(',')
+            
+            # Convert date and time strings to datetime objects
+            if key == 'Time':
+                try:
+                    value = datetime.fromisoformat(value)
+                except ValueError:
+                    # Handle the case where the string is not a valid ISO format
+                    pass
+            
+            strategy_dict[key] = value
+    
+    return strategy_dict
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-
     data = request.data.decode('utf-8')
 
     if data:
-        # Save entire payload to MongoDB
-        collection.insert_one({'data': data})
+        # Save raw data to MongoDB
+        raw_collection.insert_one({'raw_data': data})
+
+        # Parse and save processed data to MongoDB
+        processed_data = parse_strategy_text(data)
+        processed_collection.insert_one({'processed_data': processed_data})
 
         return jsonify({'message': 'Trade data saved successfully'})
+    
     return jsonify({'message': 'Invalid or unsupported payload'}), 400
 
 if __name__ == '__main__':
