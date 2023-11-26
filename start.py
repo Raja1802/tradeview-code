@@ -14,11 +14,11 @@ raw_collection = db['raw_trades']
 processed_collection = db['processed_trades']
 
 def parse_strategy_text(strategy_text):
-    # Check if "0" followed by any number of whitespaces and newline is present in the input string
-    match = re.search(r'0\s*\n', strategy_text)
+    # Check if "0\n\n\nStrategy" is present in the input string
+    match = re.search(r'0\s*\n\s*\n\s*\n\s*Strategy', strategy_text)
     if not match:
         # Handle the case where the pattern is not found
-        raise ValueError("Invalid input format. Unable to find '0\\n'.")
+        raise ValueError("Invalid input format. Unable to find '0\\n\\n\\nStrategy'.")
     
     # Get the index where the pattern was found
     index = match.end()
