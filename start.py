@@ -14,7 +14,13 @@ raw_collection = db['raw_trades']
 processed_collection = db['processed_trades']
 
 def parse_strategy_text(strategy_text):
-    # Ignore text up to "0\n"
+    print(strategy_text)
+    # Check if "0\n" is present in the input string
+    if "0\n" not in strategy_text:
+        # Handle the case where "0\n" is not found
+        raise ValueError("Invalid input format. Unable to find '0\\n'.")
+
+    # Split the remaining text by '\n'
     _, remaining_text = strategy_text.split("0\n", 1)
     
     # Split the remaining text by '\n'
@@ -46,14 +52,17 @@ def webhook():
     data = request.data.decode('utf-8')
 
     if data:
-        # Save raw data to MongoDB
-        raw_collection.insert_one({'raw_data': data})
+        try:
+            # Save raw data to MongoDB
+            raw_collection.insert_one({'raw_data': data})
 
-        # Parse and save processed data to MongoDB
-        processed_data = parse_strategy_text(data)
-        processed_collection.insert_one({'processed_data': processed_data})
+            # Parse and save processed data to MongoDB
+            processed_data = parse_strategy_text(data)
+            processed_collection.insert_one({'processed_data': processed_data})
 
-        return jsonify({'message': 'Trade data saved successfully'})
+            return jsonify({'message': 'Trade data saved successfully'})
+        except ValueError as e:
+            return jsonify({'message': str(e)}), 400
     
     return jsonify({'message': 'Invalid or unsupported payload'}), 400
 
