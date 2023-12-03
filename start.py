@@ -12,6 +12,13 @@ client = MongoClient(mongo_uri)
 db = client['trade_data']
 raw_collection = db['raw_trades']
 processed_collection = db['processed_trades']
+open_queue_positions = db['open_queue_positions']
+
+def calculate_profit(buy_price, sell_price):
+    if buy_price is None or sell_price is None:
+        return None  # Unable to calculate profit without both prices
+
+    return round(sell_price - buy_price, 4)
 
 def parse_strategy_text(strategy_text):
     # Check if "Strategy" is present in the input string
@@ -28,8 +35,7 @@ def parse_strategy_text(strategy_text):
     second_part = strategy_text[index:]
     
     # Split the remaining text by '\\n'
-    lines = second_part.split('\\n')
-    print(lines)
+    lines = second_part.split(',')
     # Create a dictionary from the key-value pairs
     strategy_dict = {}
     for line in lines:
@@ -37,7 +43,7 @@ def parse_strategy_text(strategy_text):
             key, value = map(str.strip, line.split('=', 1))
             
             # Remove ending comma if present
-            value = value.rstrip(',')
+            value = value.rstrip('\\n')
             
             # Convert date and time strings to datetime objects
             if key == 'Time':
@@ -48,17 +54,41 @@ def parse_strategy_text(strategy_text):
                     pass
             
             # Remove {{ }} brackets from values
-            value = value.replace('{{', '').replace('}}', '').strip()
-            
+            value = value.replace('{{', '').replace('}}', '').replace('\\n', '').strip()
+            key = key.replace('{{', '').replace('}}', '').replace('\\n', '').strip()
             # Insert each key-value pair as a separate field in processed_collection
             strategy_dict[key] = value
 
     # Save raw data and first_part in raw_collection
     raw_collection.insert_one({'raw_data': strategy_text, 'first_part': first_part})
-
-    # Insert the processed data into processed_collection
-    processed_collection.insert_one(strategy_dict)
-
+    
+    bats = strategy_dict.get('BATS')
+    if bats:
+        existing_position = open_queue_positions.find_one({'BATS': bats})
+        print(existing_position)
+        if existing_position and (existing_position["Order"] !=  strategy_dict["Order"]) and existing_position != None:
+            # If position exists, close it and save to processed_collection
+            if existing_position["Order"] == 'sell':
+                sell_date_object = datetime.fromisoformat(str(existing_position['Time'])[:-1])
+                formatted_date = sell_date_object.strftime("%d %B %Y")
+                sell_time = sell_date_object.strftime("%I:%M")
+                buy_date_object = datetime.fromisoformat(str(strategy_dict['Time'])[:-1])
+                buy_time = buy_date_object.strftime("%I:%M")
+                existing_position['Date'] = formatted_date
+                existing_position['Buy_time'] = buy_time
+                existing_position['Sell_time'] = sell_time
+                existing_position['Sell_Price'] =  float(existing_position["Price"])
+                existing_position['Buy_Price'] = float(strategy_dict['Price'])
+                profit = calculate_profit(existing_position['Sell_Price'], existing_position['Buy_Price'])
+                existing_position['P/L'] = profit
+                existing_position['closed_time'] = datetime.now()
+                for unwanted_field in ['Price', 'Strategy', 'Order', 'Comment', 'Time']:
+                    existing_position.pop(unwanted_field, None)
+                processed_collection.insert_one(existing_position)
+                # Remove the closed position from the open_queue_positions
+                open_queue_positions.delete_one({'BATS': bats})
+        else:
+            open_queue_positions.insert_one(strategy_dict)
     return jsonify({'message': 'Trade data saved successfully'})
 
 @app.route('/webhook', methods=['POST'])
