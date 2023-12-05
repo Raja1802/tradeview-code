@@ -90,7 +90,7 @@ def parse_strategy_text(strategy_text):
                 processed_collection.insert_one(existing_position)
                 # Remove the closed position from the open_queue_positions
                 open_queue_positions.delete_one({'NSE': bats})
-        elif existing_position["Order"] != 'sell' and strategy_dict["Order"] == "buy":
+        elif  existing_position != None and existing_position["Order"] != 'sell' and strategy_dict["Order"] == "buy":
             trades_not_processed.insert_one(strategy_dict)
         else:
             open_queue_positions.insert_one(strategy_dict)
