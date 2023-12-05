@@ -62,9 +62,9 @@ def parse_strategy_text(strategy_text):
     # Save raw data and first_part in raw_collection
     raw_collection.insert_one({'raw_data': strategy_text, 'first_part': first_part})
     
-    bats = strategy_dict.get('BATS')
+    bats = strategy_dict.get('NSE')
     if bats:
-        existing_position = open_queue_positions.find_one({'BATS': bats})
+        existing_position = open_queue_positions.find_one({'NSE': bats})
         print(existing_position)
         if existing_position and (existing_position["Order"] !=  strategy_dict["Order"]) and existing_position != None:
             # If position exists, close it and save to processed_collection
@@ -86,7 +86,7 @@ def parse_strategy_text(strategy_text):
                     existing_position.pop(unwanted_field, None)
                 processed_collection.insert_one(existing_position)
                 # Remove the closed position from the open_queue_positions
-                open_queue_positions.delete_one({'BATS': bats})
+                open_queue_positions.delete_one({'NSE': bats})
         else:
             open_queue_positions.insert_one(strategy_dict)
     return jsonify({'message': 'Trade data saved successfully'})
