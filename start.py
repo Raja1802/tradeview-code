@@ -13,6 +13,8 @@ db = client['trade_data']
 raw_collection = db['raw_trades']
 processed_collection = db['processed_trades']
 open_queue_positions = db['open_queue_positions']
+trades_not_processed = db['trades_not_processed']
+trades_data = db['trades_data']
 
 def calculate_profit(buy_price, sell_price):
     if buy_price is None or sell_price is None:
@@ -61,7 +63,7 @@ def parse_strategy_text(strategy_text):
 
     # Save raw data and first_part in raw_collection
     raw_collection.insert_one({'raw_data': strategy_text, 'first_part': first_part})
-    
+    trades_data.insert_one(strategy_dict)
     bats = strategy_dict.get('NSE')
     if bats:
         existing_position = open_queue_positions.find_one({'NSE': bats})
@@ -79,6 +81,7 @@ def parse_strategy_text(strategy_text):
                 existing_position['Sell_time'] = sell_time
                 existing_position['Sell_Price'] =  float(existing_position["Price"])
                 existing_position['Buy_Price'] = float(strategy_dict['Price'])
+                existing_position['Stock'] = bats
                 profit = calculate_profit(existing_position['Sell_Price'], existing_position['Buy_Price'])
                 existing_position['P/L'] = profit
                 existing_position['closed_time'] = datetime.now()
@@ -88,7 +91,7 @@ def parse_strategy_text(strategy_text):
                 # Remove the closed position from the open_queue_positions
                 open_queue_positions.delete_one({'NSE': bats})
         else:
-            open_queue_positions.insert_one(strategy_dict)
+            trades_not_processed.insert_one(strategy_dict)
     return jsonify({'message': 'Trade data saved successfully'})
 
 @app.route('/webhook', methods=['POST'])
