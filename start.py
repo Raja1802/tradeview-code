@@ -16,7 +16,7 @@ open_queue_positions = db['open_queue_positions']
 trades_not_processed = db['trades_not_processed']
 trades_data = db['trades_data']
 
-def calculate_profit(buy_price, sell_price):
+def calculate_profit(sell_price, buy_price):
     if buy_price is None or sell_price is None:
         return None  # Unable to calculate profit without both prices
 
