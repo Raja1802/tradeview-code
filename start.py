@@ -30,7 +30,7 @@ def convert_to_ist(time_str):
     time_utc = datetime.strptime(time_str, "%I:%M")
     time_utc = utc_timezone.localize(time_utc)
     time_ist = time_utc.astimezone(ist_timezone)
-    return time_ist.strftime("%I:%M %p")
+    return time_ist.strftime("%I:%M")
 
 def parse_strategy_text(strategy_text):
     # Check if "Strategy" is present in the input string
