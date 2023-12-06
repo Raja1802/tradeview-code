@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from pymongo import MongoClient
 import re
 from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 
@@ -21,6 +22,15 @@ def calculate_profit(sell_price, buy_price):
         return None  # Unable to calculate profit without both prices
 
     return round(sell_price - buy_price, 4)
+
+def convert_to_ist(time_str):
+    utc_timezone = pytz.timezone("UTC")
+    ist_timezone = pytz.timezone("Asia/Kolkata")
+
+    time_utc = datetime.strptime(time_str, "%I:%M")
+    time_utc = utc_timezone.localize(time_utc)
+    time_ist = time_utc.astimezone(ist_timezone)
+    return time_ist.strftime("%I:%M %p")
 
 def parse_strategy_text(strategy_text):
     # Check if "Strategy" is present in the input string
@@ -79,11 +89,19 @@ def parse_strategy_text(strategy_text):
                 existing_position['Date'] = formatted_date
                 existing_position['Buy_time'] = buy_time
                 existing_position['Sell_time'] = sell_time
+                # Convert buy_time and sell_time to IST
+                if 'Buy_time' in existing_position:
+                    existing_position['Buy_time'] = convert_to_ist(existing_position['Buy_time'])
+                if 'Sell_time' in existing_position:
+                    existing_position['Sell_time'] = convert_to_ist(existing_position['Sell_time'])
                 existing_position['Sell_Price'] =  float(existing_position["Price"])
                 existing_position['Buy_Price'] = float(strategy_dict['Price'])
                 existing_position['Stock'] = bats
                 profit = calculate_profit(existing_position['Sell_Price'], existing_position['Buy_Price'])
                 existing_position['P/L'] = profit
+                existing_position['PL_Percentage'] = round(
+                    ((existing_position['Sell_Price'] - existing_position['Buy_Price']) / existing_position['Buy_Price']) * 100, 2
+                )
                 existing_position['closed_time'] = datetime.now()
                 for unwanted_field in ['Price', 'Strategy', 'Order', 'Comment', 'Time']:
                     existing_position.pop(unwanted_field, None)
