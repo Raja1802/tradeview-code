@@ -100,7 +100,7 @@ def parse_strategy_text(strategy_text):
                 profit = calculate_profit(existing_position['Sell_Price'], existing_position['Buy_Price'])
                 existing_position['P/L'] = profit
                 existing_position['PL_Percentage'] = round(
-                    ((existing_position['Sell_Price'] - existing_position['Buy_Price']) / existing_position['Buy_Price']) * 100, 2
+                    ((existing_position['Sell_Price'] - existing_position['Buy_Price']) / existing_position['Buy_Price']) * 100, 4
                 )
                 existing_position['closed_time'] = datetime.now()
                 for unwanted_field in ['Price', 'Strategy', 'Order', 'Comment', 'Time']:
