@@ -3,6 +3,7 @@ from pymongo import MongoClient
 import re
 from datetime import datetime
 import pytz
+from dateutil import parser
 
 app = Flask(__name__)
 
@@ -21,16 +22,17 @@ def calculate_profit(sell_price, buy_price):
     if buy_price is None or sell_price is None:
         return None  # Unable to calculate profit without both prices
 
-    return round(sell_price - buy_price, 4)
+    return round(sell_price - buy_price, 2)
 
 def convert_to_ist(time_str):
     utc_timezone = pytz.timezone("UTC")
     ist_timezone = pytz.timezone("Asia/Kolkata")
 
-    time_utc = datetime.strptime(time_str, "%I:%M")
+    # Use dateutil.parser.parse for flexible time string parsing
+    time_utc = parser.parse(time_str)
     time_utc = utc_timezone.localize(time_utc)
     time_ist = time_utc.astimezone(ist_timezone)
-    return time_ist.strftime("%I:%M")
+    return time_ist.strftime("%H:%M")  # Use %H:%M for 24-hour format
 
 def parse_strategy_text(strategy_text):
     # Check if "Strategy" is present in the input string
@@ -82,28 +84,33 @@ def parse_strategy_text(strategy_text):
             # If position exists, close it and save to processed_collection
             if existing_position["Order"] == 'sell':
                 sell_date_object = datetime.fromisoformat(str(existing_position['Time'])[:-1])
-                formatted_date = sell_date_object.strftime("%d %B %Y")
+                print(sell_date_object)
+                formatted_date = sell_date_object.strftime("%d %b %Y")
                 sell_time = sell_date_object.strftime("%I:%M")
                 buy_date_object = datetime.fromisoformat(str(strategy_dict['Time'])[:-1])
                 buy_time = buy_date_object.strftime("%I:%M")
+                existing_position['Stock'] = bats
                 existing_position['Date'] = formatted_date
                 existing_position['Buy_time'] = buy_time
                 existing_position['Sell_time'] = sell_time
+                print("Buy time RAW",buy_time)
+                print("SELL time RAW", sell_time)
                 # Convert buy_time and sell_time to IST
                 if 'Buy_time' in existing_position:
                     existing_position['Buy_time'] = convert_to_ist(existing_position['Buy_time'])
+                    print("Buy time converted ", existing_position['Buy_time'])
                 if 'Sell_time' in existing_position:
                     existing_position['Sell_time'] = convert_to_ist(existing_position['Sell_time'])
+                    print("SELL time converted ", existing_position['Sell_time'])
                 existing_position['Sell_Price'] =  float(existing_position["Price"])
                 existing_position['Buy_Price'] = float(strategy_dict['Price'])
-                existing_position['Stock'] = bats
                 profit = calculate_profit(existing_position['Sell_Price'], existing_position['Buy_Price'])
                 existing_position['P/L'] = profit
                 existing_position['PL_Percentage'] = round(
-                    ((existing_position['Sell_Price'] - existing_position['Buy_Price']) / existing_position['Buy_Price']) * 100, 4
+                    ((existing_position['Sell_Price'] - existing_position['Buy_Price']) / existing_position['Buy_Price']) * 100, 2
                 )
-                existing_position['closed_time'] = datetime.now()
-                for unwanted_field in ['Price', 'Strategy', 'Order', 'Comment', 'Time']:
+                # existing_position['closed_time'] = datetime.now()
+                for unwanted_field in ['Price', 'Strategy', 'Order', 'Comment', 'Time', 'NSE']:
                     existing_position.pop(unwanted_field, None)
                 processed_collection.insert_one(existing_position)
                 # Remove the closed position from the open_queue_positions
