@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.daily import DailyTrigger
+# from apscheduler.triggers.daily import DailyTrigger
 import re
 from datetime import datetime
 import pytz
