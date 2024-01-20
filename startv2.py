@@ -42,7 +42,9 @@ def move_open_positions_india_to_unprocessed_tables():
 us_scheduler = BackgroundScheduler()
 us_scheduler.add_job(
     move_open_positions_us_to_unprocessed_tables,
-    trigger=DailyTrigger(hour=3, minute=0, second=0),
+    trigger='cron',  # Use the cron trigger
+    hour=3, minute=0, second=0,
+    # trigger=DailyTrigger(hour=3, minute=0, second=0),
     timezone=pytz.utc,
 )
 us_scheduler.start()
@@ -51,7 +53,9 @@ us_scheduler.start()
 india_scheduler = BackgroundScheduler()
 india_scheduler.add_job(
     move_open_positions_india_to_unprocessed_tables,
-    trigger=DailyTrigger(hour=3, minute=0, second=0),
+    trigger='cron',  # Use the cron trigger
+    hour=3, minute=0, second=0,
+    # trigger=DailyTrigger(hour=3, minute=0, second=0),
     timezone=pytz.timezone("Asia/Kolkata"),
 )
 india_scheduler.start()
